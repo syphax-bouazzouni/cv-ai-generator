@@ -22,8 +22,8 @@ export async function POST(request: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
-    const prompt = `You are a professional CV writer.
-    Analyze the following job description and current CV (if provided) to generate a new CV that matches the job requirements,
+    const prompt = `You are a professional CV and cover letter writer.
+    Analyze the following job description and current CV (if provided) to generate a new CV and cover letter that match the job requirements,
     and also provide a summary of the job description and a score of how well the current CV matches the job description.
     Job Description:
     ${jobDescription}
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     ${pdfText ? `Current CV:
     ${pdfText}` : ''}
 
-    Generate a CV that matches the job description while preserving relevant experience from the current CV, adapt the summary and the technologies to the job description.
+    Generate a CV and cover letter that match the job description while preserving relevant experience from the current CV, adapt the summary and the technologies to the job description.
     if not an inforamation is not provided, just leave it blank.
 
 Format the response as a JSON object with the following structure:

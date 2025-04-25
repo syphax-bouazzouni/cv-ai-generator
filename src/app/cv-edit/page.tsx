@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { CVTemplate, type CVTemplateProps } from '../../components/CVTemplate';
+import CVTemplate, { type CVTemplateProps } from '../../components/templates/CVTemplate';
 import { PDFViewer } from '@react-pdf/renderer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,12 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { getWithExpiry } from '@/lib/storage';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
 
 export default function CVEditPage() {
   const [cvData, setCvData] = useState<CVTemplateProps | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [updateTimeout, setUpdateTimeout] = useState<NodeJS.Timeout | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const savedCvData = getWithExpiry<CVTemplateProps>('cvData');
@@ -106,7 +109,8 @@ export default function CVEditPage() {
           title: '',
           company: '',
           location: '',
-          period: '',
+          startMonthYear: '',
+          endMonthYear: '',
           description: [],
           technologies: ''
         }
@@ -133,7 +137,8 @@ export default function CVEditPage() {
         {
           degree: '',
           institution: '',
-          period: '',
+          startMonthYear: '',
+          endMonthYear: '',
           location: '',
           details: []
         }
@@ -201,45 +206,62 @@ export default function CVEditPage() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 relative">
         {/* Left Column - Edit Form */}
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Job Description</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label>Job Description Summary</Label>
-                        <p className="text-sm text-gray-700">{cvData.jobDescriptionSummary}</p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>ATS Score</Label>
-                        <p>{cvData.atsScore}</p>
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Required Years of Experience</Label>
-                        <p>{cvData.requiredYearsExperience}</p>
-                    </div>
-                    <div className="space-y-2 mt-4">
-                        <Label>Required Skills</Label>
-                        <div className="flex flex-wrap gap-2">
-                            {cvData.recommendedKeywords?.map((skill, index) => {
-                                let isMatched =  cvData.summary.toLowerCase().includes(skill.toLowerCase())
-                            
-                                isMatched =  isMatched || cvData.experience.some(exp => 
-                                    exp.technologies?.toLowerCase().includes(skill.toLowerCase()) ||
-                                    exp.description.some(desc => desc.toLowerCase().includes(skill.toLowerCase()))
-                                );
-                                
-                                return (
-                                    <div key={index} className={`px-2 py-1 rounded ${
-                                        isMatched ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
-                                    }`}>
-                                        {skill}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </CardContent>
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">Edit CV</h1>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleDownload}
+              >
+                Download CV
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => router.push('/cover-letter')}
+              >
+                Generate Cover Letter
+              </Button>
+            </div>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Job Description</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Job Description Summary</Label>
+                <p className="text-sm text-gray-700">{cvData.jobDescriptionSummary}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>ATS Score</Label>
+                <p>{cvData.atsScore}</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Required Years of Experience</Label>
+                <p>{cvData.requiredYearsExperience}</p>
+              </div>
+              <div className="space-y-2 mt-4">
+                <Label>Required Skills</Label>
+                <div className="flex flex-wrap gap-2">
+                  {cvData.recommendedKeywords?.map((skill, index) => {
+                    let isMatched =  cvData.summary.toLowerCase().includes(skill.toLowerCase())
+                  
+                    isMatched =  isMatched || cvData.experience.some(exp => 
+                      exp.technologies?.toLowerCase().includes(skill.toLowerCase()) ||
+                      exp.description.some(desc => desc.toLowerCase().includes(skill.toLowerCase()))
+                    );
+                    
+                    return (
+                      <div key={index} className={`px-2 py-1 rounded ${
+                        isMatched ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {skill}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </CardContent>
           </Card>
           <Card>
             <CardHeader>
@@ -278,10 +300,8 @@ export default function CVEditPage() {
                 />
               </div>
 
-
-
               <div className="space-y-2">
-               <Label>Phone</Label>
+                <Label>Phone</Label>
                 <Input
                   value={cvData.phone}
                   onChange={(e) => handleInputChange('phone', e.target.value)}
@@ -304,17 +324,16 @@ export default function CVEditPage() {
                 />
               </div>
               
-
               <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Summary</Label>
-                <Textarea
-                  value={cvData.summary}
-                  onChange={(e) => handleInputChange('summary', e.target.value)}
-                  placeholder="Professional summary..."
-                  className="min-h-[100px]"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label>Summary</Label>
+                  <Textarea
+                    value={cvData.summary}
+                    onChange={(e) => handleInputChange('summary', e.target.value)}
+                    placeholder="Professional summary..."
+                    className="min-h-[100px]"
+                  />
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -434,11 +453,10 @@ export default function CVEditPage() {
                   </div>
                 ))}
               </div>
-
-              
             </CardContent>
           </Card>
         </div>
+
 
         {/* Right Column - PDF Preview */}
         <div className="h-[800px] fixed right-0 w-1/2">
@@ -454,9 +472,9 @@ export default function CVEditPage() {
               )}
               {pdfUrl && (<>
                 <div className="flex justify-end mb-2 mr-2">
-                    <Button onClick={handleDownload} className="bg-blue-500 text-white"> 
+                  <Button onClick={handleDownload} className="bg-blue-500 text-white"> 
                     Download PDF
-                    </Button>
+                  </Button>
                 </div>
                 <iframe
                   src={pdfUrl}
