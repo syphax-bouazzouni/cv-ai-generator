@@ -21,6 +21,7 @@ export default function CVEditPage() {
     const savedCvData = getWithExpiry<CVTemplateProps>('cvData');
     if (savedCvData) {
       setCvData(savedCvData);
+      debouncedUpdate(savedCvData);
     }
   }, []);
 
@@ -197,9 +198,49 @@ export default function CVEditPage() {
 
   return (
     <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 relative">
         {/* Left Column - Edit Form */}
         <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Job Description</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Job Description Summary</Label>
+                        <p className="text-sm text-gray-700">{cvData.jobDescriptionSummary}</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>ATS Score</Label>
+                        <p>{cvData.atsScore}</p>
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Required Years of Experience</Label>
+                        <p>{cvData.requiredYearsExperience}</p>
+                    </div>
+                    <div className="space-y-2 mt-4">
+                        <Label>Required Skills</Label>
+                        <div className="flex flex-wrap gap-2">
+                            {cvData.recommendedKeywords?.map((skill, index) => {
+                                let isMatched =  cvData.summary.toLowerCase().includes(skill.toLowerCase())
+                            
+                                isMatched =  isMatched || cvData.experience.some(exp => 
+                                    exp.technologies?.toLowerCase().includes(skill.toLowerCase()) ||
+                                    exp.description.some(desc => desc.toLowerCase().includes(skill.toLowerCase()))
+                                );
+                                
+                                return (
+                                    <div key={index} className={`px-2 py-1 rounded ${
+                                        isMatched ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {skill}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle>Edit CV</CardTitle>
@@ -237,29 +278,39 @@ export default function CVEditPage() {
                 />
               </div>
 
+
+
               <div className="space-y-2">
-                <Label>Age</Label>
+               <Label>Phone</Label>
                 <Input
-                  value={cvData.age}
-                  onChange={(e) => handleInputChange('age', e.target.value)}
+                  value={cvData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Remote Work</Label>
+                <Label>Github</Label>
                 <Input
-                  type="checkbox"
-                  checked={cvData.remoteWork}
-                  onChange={(e) => handleInputChange('remoteWork', e.target.checked)}
+                  value={cvData.github}
+                  onChange={(e) => handleInputChange('github', e.target.value)}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label>Linkedin</Label>
+                <Input
+                  value={cvData.linkedin}
+                  onChange={(e) => handleInputChange('linkedin', e.target.value)}
+                />
+              </div>
+              
 
               <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Summary</Label>
                 <Textarea
                   value={cvData.summary}
-                  onChange={(e) => handleAboutMeChange('summary', e.target.value)}
+                  onChange={(e) => handleInputChange('summary', e.target.value)}
                   placeholder="Professional summary..."
                   className="min-h-[100px]"
                 />
@@ -296,9 +347,14 @@ export default function CVEditPage() {
                       onChange={(e) => handleExperienceChange(index, 'location', e.target.value)}
                     />
                     <Input
-                      placeholder="Period"
-                      value={exp.period}
-                      onChange={(e) => handleExperienceChange(index, 'period', e.target.value)}
+                      placeholder="Start Month/Year"
+                      value={exp.startMonthYear}
+                      onChange={(e) => handleExperienceChange(index, 'startMonthYear', e.target.value)}
+                    />
+                    <Input
+                      placeholder="End Month/Year"
+                      value={exp.endMonthYear} 
+                      onChange={(e) => handleExperienceChange(index, 'endMonthYear', e.target.value)}
                     />
                     <Textarea
                       placeholder="Description (one per line)"
@@ -347,10 +403,16 @@ export default function CVEditPage() {
                       onChange={(e) => handleEducationChange(index, 'institution', e.target.value)}
                     />
                     <Input
-                      placeholder="Period"
-                      value={edu.period}
-                      onChange={(e) => handleEducationChange(index, 'period', e.target.value)}
+                      placeholder="Start Month/Year"
+                      value={edu.startMonthYear}
+                      onChange={(e) => handleEducationChange(index, 'startMonthYear', e.target.value)}
                     />
+                    <Input
+                      placeholder="End Month/Year"
+                      value={edu.endMonthYear}
+                      onChange={(e) => handleEducationChange(index, 'endMonthYear', e.target.value)}
+                    />
+
                     <Input
                       placeholder="Location"
                       value={edu.location}
@@ -373,17 +435,13 @@ export default function CVEditPage() {
                 ))}
               </div>
 
-              <div className="flex justify-end">
-                <Button onClick={handleDownload}>
-                  Download PDF
-                </Button>
-              </div>
+              
             </CardContent>
           </Card>
         </div>
 
         {/* Right Column - PDF Preview */}
-        <div className="h-[800px] border rounded-lg overflow-hidden relative">
+        <div className="h-[800px] fixed right-0 w-1/2">
           {cvData ? (
             <>
               {isLoading && (
@@ -394,13 +452,18 @@ export default function CVEditPage() {
                   </div>
                 </div>
               )}
-              {pdfUrl && (
+              {pdfUrl && (<>
+                <div className="flex justify-end mb-2 mr-2">
+                    <Button onClick={handleDownload} className="bg-blue-500 text-white"> 
+                    Download PDF
+                    </Button>
+                </div>
                 <iframe
                   src={pdfUrl}
-                  className="w-full h-full"
+                  className="w-full h-full border rounded-lg"
                   title="CV Preview"
                 />
-              )}
+              </>)}
             </>
           ) : (
             <div className="h-full flex items-center justify-center">

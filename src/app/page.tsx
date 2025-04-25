@@ -1,9 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
-import { CVTemplate } from '../components/CVTemplate';
-import { PDFViewer } from '@react-pdf/renderer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,11 +33,14 @@ interface CVData {
 
 export default function Home() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [jobDescription, setJobDescription] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [error, setError] = useState('');
   const [cvData, setCvData] = useState<CVData | null>(null);
+  const [pdfText, setPdfText] = useState('');
 
   // Load saved data on component mount
   useEffect(() => {
@@ -63,6 +64,31 @@ export default function Home() {
     }
   }, [apiKey]);
 
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    
+    setIsParsingPdf(true);
+    const formData = new FormData();
+    formData.append('FILE', e.target.files[0]);
+
+    try {
+      const response = await fetch('/api/extract-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Failed to parse PDF');
+      const text = await response.text();
+      setPdfText(text);
+    } catch (err) {
+      console.error('Error parsing PDF:', err);
+      setError('Failed to parse PDF. Please try again.');
+    } finally {
+      setIsParsingPdf(false);
+    }
+  };
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -75,7 +101,7 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ jobDescription, apiKey }),
+        body: JSON.stringify({ jobDescription, apiKey, pdfText }),
       });
 
       if (!response.ok) {
@@ -100,6 +126,23 @@ export default function Home() {
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="file">Upload Current CV (PDF)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    id="file"
+                    accept=".pdf"
+                    onChange={handleFileUpload}
+                    ref={fileInputRef}
+                    disabled={isParsingPdf}
+                  />
+                  {isParsingPdf && (
+                    <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                  )}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="jobDescription">Job Description</Label>
                 <Textarea
@@ -145,7 +188,6 @@ export default function Home() {
             </form>
           </CardContent>
         </Card>
-
       </div>
     </main>
   );

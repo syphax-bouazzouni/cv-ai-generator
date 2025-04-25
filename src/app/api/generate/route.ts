@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export async function POST(request: Request) {
   try {
-    const { jobDescription, apiKey } = await request.json();
+    const { jobDescription, apiKey, pdfText } = await request.json();
 
     if (!apiKey) {
       return new NextResponse(
@@ -23,14 +23,17 @@ export async function POST(request: Request) {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' });
 
     const prompt = `You are a professional CV writer.
-    Analyze the following job description and extract:
-        1. Key skills required
-        2. Required experience
-        3. Recommended keywords for ATS optimization
-        4. A brief summary of the job
-        5. Industry context
+    Analyze the following job description and current CV (if provided) to generate a new CV that matches the job requirements,
+    and also provide a summary of the job description and a score of how well the current CV matches the job description.
+    Job Description:
+    ${jobDescription}
+    
+    ${pdfText ? `Current CV:
+    ${pdfText}` : ''}
 
-    Generate a CV that matches the job description.
+    Generate a CV that matches the job description while preserving relevant experience from the current CV, adapt the summary and the technologies to the job description.
+    if not an inforamation is not provided, just leave it blank.
+
 Format the response as a JSON object with the following structure:
 {
   "name": "Full Name",
@@ -38,7 +41,6 @@ Format the response as a JSON object with the following structure:
   "email": "email@example.com",
   "location": "City, Country",
   "remoteWork": true,
-  "age": "26 years old",
   "phone": "Phone Number",
   "github": "https://github.com/username",
   "linkedin": "https://linkedin.com/in/username",
@@ -63,10 +65,12 @@ Format the response as a JSON object with the following structure:
       "location": "City, Country",
       "details": ["Detail 1", "Detail 2"]
     }
-  ]
-}
-
-Generate a CV that matches this job description: ${jobDescription}`;
+  ],
+  "jobDescriptionSummary": "Summary of the job description",
+  "atsScore": "Score of how well the current CV matches the job description example: 0.8",
+  "requiredYearsExperience": "Required years of experience example: 3 years",
+  "recommendedKeywords": ["Keyword 1", "Keyword 2"]
+}`;
 
     const result = await model.generateContent(prompt);
 

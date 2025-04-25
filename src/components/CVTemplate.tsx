@@ -32,6 +32,10 @@ export type CVTemplateProps = {
   phone?: string;
   github?: string;
   linkedin?: string;
+  requiredYearsExperience?: number;
+  recommendedKeywords?: string[];
+  jobDescriptionSummary?: string;
+  atsScore?: number;
   experience: Experience[];
   education: Education[];
 };
