@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import CVTemplate, { type CVTemplateProps } from '../../components/templates/CVTemplate';
-import { PDFViewer } from '@react-pdf/renderer';
+import { useState, useEffect, useCallback } from 'react';
+import { type CVTemplateProps } from '../../components/templates/CVTemplate';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,7 +16,6 @@ export default function CVEditPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [updateTimeout, setUpdateTimeout] = useState<NodeJS.Timeout | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -65,15 +63,7 @@ export default function CVEditPage() {
     debouncedUpdate(newData);
   };
 
-  const handleAboutMeChange = (field: keyof NonNullable<typeof cvData>['summary'], value: any) => {
-    if (!cvData?.summary) return;
-    const newData = {
-      ...cvData,
-      summary: value
-    } as CVTemplateProps;
-    setCvData(newData);
-    debouncedUpdate(newData);
-  };
+
 
   const handleExperienceChange = (index: number, field: keyof NonNullable<typeof cvData>['experience'][0], value: any) => {
     if (!cvData?.experience) return;

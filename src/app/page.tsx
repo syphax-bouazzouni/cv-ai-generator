@@ -3,33 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { getWithExpiry, setWithExpiry } from '@/lib/storage';
 import { useRouter } from 'next/navigation';
 
-interface CVData {
-  name: string;
-  email: string;
-  phone: string;
-  summary: string;
-  experience: Array<{
-    title: string;
-    company: string;
-    period: string;
-    description: string;
-  }>;
-  education: Array<{
-    degree: string;
-    institution: string;
-    period: string;
-  }>;
-  skills: string[];
-  recommendedKeywords: string[];
-  requiredYearsExperience: number;
-}
 
 export default function Home() {
   const router = useRouter();
@@ -39,7 +19,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isParsingPdf, setIsParsingPdf] = useState(false);
   const [error, setError] = useState('');
-  const [cvData, setCvData] = useState<CVData | null>(null);
   const [pdfText, setPdfText] = useState('');
 
   // Load saved data on component mount
@@ -88,12 +67,11 @@ export default function Home() {
       setIsParsingPdf(false);
     }
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-    setCvData(null);
 
     try {
       const response = await fetch('/api/generate', {
@@ -109,10 +87,10 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setCvData(data);
       setWithExpiry('cvData', data, 60 * 60 * 1000); // 1 hour
       router.push('/cv-edit');
     } catch (err) {
+      console.error('Error generating CV:', err);
       setError('Failed to generate CV. Please try again.');
     } finally {
       setIsLoading(false);

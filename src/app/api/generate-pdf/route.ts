@@ -10,7 +10,6 @@ export async function POST(request: Request) {
     console.log('Generating PDF for:', data.name);
 
     const isCoverLetter = data.coverLetter !== undefined;
-    const Template = isCoverLetter ? CoverLetterTemplate : CVTemplate;
     const filename = isCoverLetter ? 'cover-letter.pdf' : 'cv.pdf';
 
     // Ensure required fields are present
@@ -27,9 +26,9 @@ export async function POST(request: Request) {
 
     if (isCoverLetter) {
       console.log('Cover letter data:', data);
-      pdfBuffer = await renderToBuffer(CoverLetterTemplate(data));
+      pdfBuffer = await renderToBuffer(CoverLetterTemplate(data) as ReactElement<DocumentProps>);
     } else {
-      pdfBuffer = await renderToBuffer(CVTemplate(data));
+      pdfBuffer = await renderToBuffer(CVTemplate(data) as ReactElement<DocumentProps>);
     }
 
     console.log('PDF generated successfully');
